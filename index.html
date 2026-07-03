@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cycle Log</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#8C3B4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cycle Log">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --bg: #F5F1EC;
+  --surface: #FFFFFF;
+  --surface-sunk: #EFE8E1;
+  --ink: #2B2430;
+  --ink-soft: #6E6169;
+  --ink-faint: #A79C9F;
+  --line: #E3D9D1;
+  --wine: #8C3B4A;
+  --wine-soft: #F1DFE1;
+  --wine-deep: #6E2E3A;
+  --sage: #6B7F5E;
+  --sage-soft: #E7ECE2;
+  --ochre: #B8863B;
+  --ochre-soft: #F5E9D6;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 2px rgba(43,36,48,0.06), 0 4px 14px rgba(43,36,48,0.05);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+html,body{margin:0; padding:0; height:100%;}
+body{
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  display:flex;
+  justify-content:center;
+}
+#app{
+  width:100%;
+  max-width:460px;
+  min-height:100vh;
+  background: var(--bg);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 18px 12px;
+  position:sticky;
+  top:0;
+  background: var(--bg);
+  z-index:20;
+}
+.topbar .date-today{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  color: var(--ink-faint);
+  letter-spacing:0.02em;
+}
+.topbar .screen-name{
+  font-family:'Fraunces', serif;
+  font-size:19px;
+  font-weight:600;
+  color: var(--ink);
+}
+.cycle-badge{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  font-weight:600;
+  background: var(--wine);
+  color: #fff;
+  padding:5px 10px;
+  border-radius:20px;
+  min-width:52px;
+  text-align:center;
+  letter-spacing:0.02em;
+}
+.cycle-badge.empty{
+  background: transparent;
+  color: transparent;
+}
+.topbar-right{ display:flex; align-items:center; gap:8px; }
+.settings-btn{
+  width:30px; height:30px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size:14px;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+
+/* ---------- Screens ---------- */
+.screen{
+  display:none;
+  flex:1;
+  padding: 0 16px 100px;
+  animation: fadeIn .18s ease;
+}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- Empty state ---------- */
+.empty-state{
+  margin-top:60px;
+  text-align:center;
+  padding: 0 20px;
+}
+.empty-state .glyph{
+  font-family:'Fraunces', serif;
+  font-size:42px;
+  color: var(--wine);
+  margin-bottom:6px;
+}
+.empty-state h2{
+  font-family:'Fraunces', serif;
+  font-weight:500;
+  font-size:20px;
+  margin:0 0 8px;
+}
+.empty-state p{
+  color: var(--ink-soft);
+  font-size:14px;
+  line-height:1.5;
+  margin:0 0 22px;
+}
+
+/* ---------- Buttons ---------- */
+.btn{
+  border:none;
+  border-radius: var(--radius-sm);
+  padding:13px 18px;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:14.5px;
+  cursor:pointer;
+  transition: transform .08s ease, opacity .15s ease;
+}
+.btn:active{transform: scale(0.97);}
+.btn-primary{ background: var(--wine); color:#fff; }
+.btn-secondary{ background: var(--surface); color: var(--ink); border:1px solid var(--line); }
+.btn-ghost{ background: transparent; color: var(--wine-deep); }
+.btn-block{ width:100%; }
+.btn-danger-outline{ background:#fff; color:#a14b3f; border:1px solid #e3c3c0; }
+.btn-danger{ background:#a14b3f; color:#fff; }
+
+/* ---------- Cards ---------- */
+.card{
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow: var(--shadow);
+}
+.card h3{
+  font-family:'Fraunces', serif;
+  font-size:15.5px;
+  font-weight:600;
+  margin:0 0 12px;
+  color: var(--wine-deep);
+}
+
+/* ---------- Day nav ---------- */
+.day-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin: 6px 0 16px;
+}
+.day-nav-arrow{
+  width:36px; height:36px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background: var(--surface);
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+  color: var(--ink);
+  cursor:pointer;
+  user-select:none;
+}
+.day-nav-arrow.disabled{opacity:0.3; pointer-events:none;}
+.day-nav-center{
+  text-align:center;
+}
+.day-nav-center .day-label{
+  font-family:'Fraunces', serif;
+  font-size:17px;
+  font-weight:600;
+}
+.day-nav-center .day-date{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color: var(--ink-faint);
+}
+.day-dots{
+  display:flex;
+  gap:6px;
+  justify-content:center;
+  margin-bottom:14px;
+}
+.day-dot{
+  width:7px; height:7px;
+  border-radius:50%;
+  background: var(--line);
+  cursor:pointer;
+}
+.day-dot.filled{ background: var(--wine); }
+.day-dot.current{ outline:2px solid var(--wine); outline-offset:2px; }
+
+/* ---------- Time block ---------- */
+.timeblock{
+  border-top:1px solid var(--line);
+  padding-top:12px;
+  margin-top:12px;
+}
+.timeblock:first-of-type{border-top:none; margin-top:0; padding-top:0;}
+.timeblock-label{
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color: var(--ink-faint);
+  margin-bottom:8px;
+}
+.field-row{margin-bottom:10px;}
+.field-row:last-child{margin-bottom:0;}
+.field-row label{
+  display:block;
+  font-size:12.5px;
+  color: var(--ink-soft);
+  margin-bottom:6px;
+}
+
+/* pain scale */
+.pain-scale{ display:flex; gap:6px; }
+.pain-btn{
+  flex:1;
+  padding:9px 0;
+  text-align:center;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background: var(--surface);
+  font-family:'IBM Plex Mono', monospace;
+  font-weight:600;
+  font-size:13px;
+  color: var(--ink-soft);
+  cursor:pointer;
+}
+.pain-btn.selected{
+  background: var(--wine);
+  border-color: var(--wine);
+  color:#fff;
+}
+
+/* dropdown-ish select */
+select, .select-native{
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background: var(--surface);
+  font-family:'Inter', sans-serif;
+  font-size:14px;
+  color: var(--ink);
+  appearance:none;
+  -webkit-appearance:none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6169' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position: right 10px center;
+  background-size:16px;
+}
+select.heaviness-flooding{ border-color: var(--ochre); background-color: var(--ochre-soft); }
+
+/* meds */
+.med-add-row{ display:flex; gap:8px; }
+.med-add-row select{flex:1;}
+.med-add-row button{
+  flex-shrink:0;
+  width:38px;
+  border-radius:8px;
+  border:1px solid var(--wine);
+  background: var(--wine-soft);
+  color: var(--wine-deep);
+  font-size:18px;
+  font-weight:600;
+  cursor:pointer;
+}
+.chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background: var(--wine-soft);
+  color: var(--wine-deep);
+  font-size:12.5px;
+  font-weight:500;
+  padding:6px 8px 6px 10px;
+  border-radius:20px;
+}
+.chip button{
+  border:none; background:transparent; color: var(--wine-deep);
+  font-size:14px; cursor:pointer; line-height:1; padding:0;
+}
+
+/* toggle yes/no */
+.toggle-row{ display:flex; gap:8px; }
+.toggle-btn{
+  flex:1;
+  padding:9px 0;
+  text-align:center;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background: var(--surface);
+  font-size:13.5px;
+  font-weight:600;
+  color: var(--ink-soft);
+  cursor:pointer;
+}
+.toggle-btn.selected-yes{ background: var(--ochre-soft); border-color: var(--ochre); color:#8a611f; }
+.toggle-btn.selected-no{ background: var(--sage-soft); border-color: var(--sage); color: var(--sage); }
+
+textarea{
+  width:100%;
+  min-height:56px;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background: var(--surface);
+  font-family:'Inter', sans-serif;
+  font-size:13.5px;
+  color: var(--ink);
+  resize:vertical;
+}
+
+/* ---------- Bottom nav ---------- */
+.bottom-nav{
+  position:fixed;
+  bottom:0;
+  left:50%;
+  transform: translateX(-50%);
+  width:100%;
+  max-width:460px;
+  background: var(--surface);
+  border-top:1px solid var(--line);
+  display:flex;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  z-index:30;
+}
+.nav-item{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:8px 4px;
+  cursor:pointer;
+  color: var(--ink-faint);
+  border-radius:10px;
+}
+.nav-item.active{ color: var(--wine); }
+.nav-item .nav-icon{ font-size:18px; }
+.nav-item .nav-label{ font-size:10.5px; font-weight:600; letter-spacing:0.01em; }
+.nav-item.disabled{ opacity:0.4; }
+
+/* ---------- Modal ---------- */
+.modal-backdrop{
+  position:fixed; inset:0;
+  background: rgba(43,36,48,0.42);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  z-index:50;
+}
+.modal-backdrop.open{ display:flex; }
+.modal-sheet{
+  width:100%;
+  max-width:460px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+  animation: slideUp .22s ease;
+}
+@keyframes slideUp{ from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+.modal-sheet h3{
+  font-family:'Fraunces', serif;
+  font-size:18px;
+  margin:0 0 16px;
+}
+.modal-sheet label{
+  display:block;
+  font-size:12.5px;
+  color: var(--ink-soft);
+  margin-bottom:6px;
+}
+.modal-sheet input[type=date]{
+  width:100%;
+  padding:11px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  font-family:'Inter', sans-serif;
+  font-size:14px;
+  margin-bottom:18px;
+}
+.modal-sheet input[type=number]{
+  width:100%;
+  padding:11px 12px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:15px;
+}
+.modal-actions{ display:flex; gap:10px; margin-top:6px; }
+.modal-actions .btn{ flex:1; }
+.btn:disabled{ opacity:0.4; pointer-events:none; }
+
+.type-choice{ display:flex; gap:8px; margin-bottom:16px; }
+.type-pill{
+  flex:1;
+  text-align:center;
+  padding:10px 0;
+  border-radius:20px;
+  border:1px solid var(--line);
+  background: var(--surface);
+  font-size:13.5px;
+  font-weight:600;
+  color: var(--ink-soft);
+  cursor:pointer;
+}
+.type-pill.selected{ background: var(--wine); border-color: var(--wine); color:#fff; }
+
+/* ---------- floating add button ---------- */
+.fab{
+  position:fixed;
+  bottom:82px;
+  left:50%;
+  transform: translateX(158px);
+  width:52px; height:52px;
+  border-radius:50%;
+  background: var(--wine);
+  color:#fff;
+  font-size:24px;
+  border:none;
+  box-shadow: 0 4px 14px rgba(140,59,74,0.35);
+  cursor:pointer;
+  z-index:25;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---------- Log / entries screen ---------- */
+.log-entry{
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding:14px 16px;
+  margin-bottom:12px;
+  box-shadow: var(--shadow);
+}
+.log-entry-top{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:8px;
+}
+.log-entry-top-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.log-entry-delete{
+  width:26px; height:26px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-faint);
+  font-size:12px;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.log-entry-delete:hover{ color:#a14b3f; border-color:#e3c3c0; }
+.log-entry-title{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; }
+.log-entry-status{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+  padding:3px 8px; border-radius:20px;
+}
+.status-active{ background: var(--wine-soft); color: var(--wine-deep); }
+.status-finished{ background: var(--surface-sunk); color: var(--ink-soft); }
+.log-stats{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:6px 14px;
+  font-size:12.5px;
+  color: var(--ink-soft);
+  margin-bottom:10px;
+}
+.log-stats b{ color: var(--ink); font-family:'IBM Plex Mono', monospace; }
+.log-actions{ display:flex; gap:8px; }
+.log-actions .btn{ flex:1; padding:9px; font-size:13px; }
+
+.section-title{
+  font-family:'Fraunces', serif;
+  font-size:14px;
+  color: var(--ink-faint);
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  font-weight:600;
+  margin: 22px 0 10px;
+}
+.section-title:first-child{ margin-top:6px; }
+
+.coming-soon{
+  margin-top:60px;
+  text-align:center;
+  color: var(--ink-faint);
+  padding:0 30px;
+}
+.coming-soon .glyph{ font-size:32px; margin-bottom:10px; }
+.coming-soon h2{ font-family:'Fraunces', serif; font-size:17px; color: var(--ink-soft); margin:0 0 6px;}
+.coming-soon p{ font-size:13px; line-height:1.5; }
+
+/* ---------- Duphaston screen ---------- */
+.duph-summary{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  background: var(--sage-soft);
+  border-radius: var(--radius);
+  padding:14px 16px;
+  margin: 14px 0;
+}
+.duph-summary-main{ font-family:'IBM Plex Mono', monospace; font-size:21px; font-weight:600; color:#4f5f45; }
+.duph-summary-sub{ font-size:11.5px; color: var(--ink-soft); margin-top:3px; }
+.duph-summary-days{ text-align:right; font-size:12px; color: var(--ink-soft); line-height:1.5; }
+.duph-summary-days b{ font-family:'IBM Plex Mono', monospace; color: var(--ink); font-size:14px; }
+
+.duph-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.duph-day{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding:9px 10px;
+  box-shadow: var(--shadow);
+}
+.duph-day.is-today{ outline:1.5px solid var(--sage); outline-offset:-1px; }
+.duph-day-date{ flex:1; min-width:0; }
+.duph-day-num{ font-family:'Fraunces', serif; font-weight:600; font-size:13.5px; }
+.duph-day-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--ink-faint); }
+.duph-pills{ display:flex; gap:8px; }
+.pill-check{
+  width:42px; height:42px;
+  border-radius:50%;
+  border:2px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; font-weight:700;
+  color: var(--ink-faint);
+  user-select:none;
+  touch-action:none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+}
+.pill-check.checked{ background: var(--sage); border-color: var(--sage); color:#fff; }
+.pill-check.holding{ border-color: var(--sage); transform: scale(1.1); }
+.duph-note-toggle{
+  width:32px; height:32px;
+  flex-shrink:0;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-faint);
+  font-size:13px;
+  cursor:pointer;
+}
+.duph-note-area{ margin: -2px 0 2px; }
+
+/* ---------- Weight screen ---------- */
+.weight-stat-row{ display:flex; gap:16px; margin-bottom:10px; }
+.weight-stat{ flex:1; }
+.weight-stat-label{ font-size:11.5px; color: var(--ink-soft); margin-bottom:3px; }
+.weight-stat-value{ font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color: var(--ink); }
+.weight-prev-note{ font-size:12.5px; color: var(--ink-soft); border-top:1px solid var(--line); padding-top:10px; line-height:1.4; }
+
+.segmented{ display:flex; background: var(--surface-sunk); border-radius:10px; padding:3px; margin:14px 0; gap:2px; }
+.segmented-item{ flex:1; text-align:center; padding:8px 4px; border-radius:8px; font-size:11.5px; font-weight:600; color: var(--ink-soft); cursor:pointer; }
+.segmented-item.selected{ background: var(--surface); color: var(--wine-deep); box-shadow: var(--shadow); }
+
+.weight-chart-card{ padding:14px 10px 10px; }
+.weight-chart-svg{ width:100%; height:auto; display:block; }
+.chart-legend{ display:flex; gap:14px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+.legend-item{ display:flex; align-items:center; gap:5px; font-size:11px; color: var(--ink-soft); }
+.legend-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
+.chart-empty-msg{ text-align:center; font-size:13px; color: var(--ink-faint); padding:30px 10px; }
+
+.toast{
+  position:fixed;
+  bottom:100px;
+  left:50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color:#fff;
+  padding:10px 18px;
+  border-radius:20px;
+  font-size:13px;
+  z-index:60;
+  opacity:0;
+  transition: opacity .2s ease;
+  pointer-events:none;
+  white-space:nowrap;
+}
+.toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="date-today" id="topDate">—</div>
+    <div class="screen-name" id="screenName">Today</div>
+    <div class="topbar-right">
+      <div class="cycle-badge empty" id="cycleBadge">—</div>
+      <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+    </div>
+  </div>
+
+  <!-- TODAY SCREEN -->
+  <div class="screen active" id="screen-today"></div>
+
+  <!-- MEDICATION (Duphaston) -->
+  <div class="screen" id="screen-medication"></div>
+
+  <!-- WEIGHT -->
+  <div class="screen" id="screen-weight"></div>
+
+  <!-- LOG SCREEN -->
+  <div class="screen" id="screen-log">
+    <div id="logContent"></div>
+  </div>
+
+  <button class="fab" id="fabAdd">+</button>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" data-screen="today">
+      <div class="nav-icon">●</div>
+      <div class="nav-label">Today</div>
+    </div>
+    <div class="nav-item" data-screen="medication">
+      <div class="nav-icon">◐</div>
+      <div class="nav-label">Meds</div>
+    </div>
+    <div class="nav-item" data-screen="weight">
+      <div class="nav-icon">▲</div>
+      <div class="nav-label">Weight</div>
+    </div>
+    <div class="nav-item" data-screen="log">
+      <div class="nav-icon">☰</div>
+      <div class="nav-label">Log</div>
+    </div>
+  </div>
+
+  <!-- New entry modal -->
+  <div class="modal-backdrop" id="modalNewEntry">
+    <div class="modal-sheet">
+      <h3>Start tracking</h3>
+      <div class="type-choice" id="typeChoiceRow">
+        <div class="type-pill" data-type="menstruation">Menstruation</div>
+        <div class="type-pill" data-type="duphaston">Duphaston</div>
+        <div class="type-pill" data-type="weight">Weight</div>
+      </div>
+      <label id="newEntryDateLabel" for="newEntryDate">First day of menstruation</label>
+      <input type="date" id="newEntryDate">
+      <div class="field-row" id="weightValueRow" style="display:none; margin-top:14px;">
+        <label for="newEntryWeightValue">Weight (kg)</label>
+        <input type="number" step="0.1" inputmode="decimal" id="newEntryWeightValue" placeholder="e.g. 62.4">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelNewEntry">Cancel</button>
+        <button class="btn btn-primary" id="confirmNewEntry">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finish confirm modal -->
+  <div class="modal-backdrop" id="modalFinish">
+    <div class="modal-sheet">
+      <h3 id="modalFinishTitle">Finish this cycle?</h3>
+      <p id="modalFinishText" style="font-size:13.5px; color:var(--ink-soft); margin:-8px 0 18px;">This saves the entry to your archive and clears the Today screen until you start a new one.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelFinish">Keep going</button>
+        <button class="btn btn-primary" id="confirmFinish">Finish &amp; save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal-backdrop" id="modalSettings">
+    <div class="modal-sheet">
+      <h3>Settings</h3>
+      <div class="field-row">
+        <label>Long-press duration for pill check-offs: <b id="longPressValueLabel">1.5s</b></label>
+        <input type="range" id="longPressSlider" min="300" max="3000" step="100" style="width:100%;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-faint); margin-top:4px;">
+          <span>0.3s</span><span>3.0s</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-block" id="closeSettings">Done</button>
+      </div>
+      <div style="border-top:1px solid var(--line); margin-top:18px; padding-top:16px;">
+        <label style="margin-bottom:8px;">Weight data</label>
+        <button class="btn btn-secondary btn-block" id="importWeightBtn">Import weight data (.json)</button>
+        <input type="file" id="importWeightFile" accept="application/json,.json" style="display:none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete entry confirm modal -->
+  <div class="modal-backdrop" id="modalDeleteEntry">
+    <div class="modal-sheet">
+      <h3>Delete this entry?</h3>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin:-8px 0 18px;">This permanently removes it from your archive, including any logged data. This can't be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelDeleteEntry">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteEntry">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============================================================
+   LOCAL STORAGE SHIM
+   Implements the same get/set/delete/list interface the app
+   already uses, backed by IndexedDB instead of Claude.ai's
+   hosted storage. Nothing below this needs to change when
+   the rest of the app is edited.
+   ============================================================ */
+(function(){
+  const DB_NAME = 'cycle-log-db';
+  const STORE = 'kv';
+  let dbPromise = null;
+  function openDB(){
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, {keyPath:'key'});
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  window.storage = {
+    async get(key){
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get(key);
+        req.onsuccess = () => resolve(req.result ? {key, value:req.result.value, shared:false} : null);
+        req.onerror = () => reject(req.error);
+      });
+    },
+    async set(key, value){
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put({key, value});
+        tx.oncomplete = () => resolve({key, value, shared:false});
+        tx.onerror = () => reject(tx.error);
+      });
+    },
+    async delete(key){
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete(key);
+        tx.oncomplete = () => resolve({key, deleted:true, shared:false});
+        tx.onerror = () => reject(tx.error);
+      });
+    },
+    async list(prefix){
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).getAllKeys();
+        req.onsuccess = () => {
+          let keys = req.result;
+          if(prefix) keys = keys.filter(k => String(k).startsWith(prefix));
+          resolve({keys, prefix, shared:false});
+        };
+        req.onerror = () => reject(req.error);
+      });
+    }
+  };
+})();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
+</script>
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const STORAGE_KEY = 'menstruation-entries';
+let entries = [];      // all entries, active + finished
+let activeEntry = null; // active menstruation entry
+let activeDuphastonEntry = null; // active duphaston entry
+let viewingDayIndex = 0;
+let currentScreen = 'today';
+let newEntryType = null;
+let pendingFinishType = null;
+let pendingDeleteEntryId = null;
+let settings = { longPressMs: 1500 };
+const SETTINGS_KEY = 'app-settings';
+let weightEntries = [];
+const WEIGHT_STORAGE_KEY = 'weight-entries';
+let weightViewMode = 'month'; // 'month' | 'all' | 'cycle'
+
+const MED_OPTIONS = [
+  {id:'nurofen200', label:'Nurofen 200 mg'},
+  {id:'nurofen400', label:'Nurofen 400 mg'},
+  {id:'tranexam', label:'Tranexam 1000 mg (2×500)'},
+  {id:'noshpa', label:'No-shpa'},
+  {id:'other', label:'Other…'},
+];
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function addDays(iso, n){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function daysBetween(a,b){
+  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000);
+}
+function formatDateLabel(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+}
+
+function blankTimeBlock(){ return { pain:null, meds:[] }; }
+function blankDay(dateISO){
+  return {
+    date: dateISO,
+    morning: blankTimeBlock(),
+    midday: blankTimeBlock(),
+    evening: blankTimeBlock(),
+    defecationPain: null, // true/false/null
+    stool: null,
+    heaviness: null,
+    energy: null,
+    note: ''
+  };
+}
+function createMenstruationEntry(startDate){
+  const days = [];
+  for(let i=0;i<8;i++){ days.push(blankDay(addDays(startDate,i))); }
+  return {
+    id: 'm_' + Date.now(),
+    type: 'menstruation',
+    startDate,
+    status: 'active',
+    finishedDate: null,
+    days,
+    summary: null
+  };
+}
+
+function blankDuphastonDay(dateISO){
+  return { date: dateISO, morningTaken:false, eveningTaken:false, note:'' };
+}
+function createDuphastonEntry(startDate, durationDays=20){
+  const days = [];
+  for(let i=0;i<durationDays;i++){ days.push(blankDuphastonDay(addDays(startDate,i))); }
+  return {
+    id: 'd_' + Date.now(),
+    type: 'duphaston',
+    startDate,
+    plannedEndDate: addDays(startDate, durationDays-1),
+    status: 'active',
+    finishedDate: null,
+    days,
+    summary: null
+  };
+}
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+async function loadEntries(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    entries = [];
+  }
+  activeEntry = entries.find(e => e.type==='menstruation' && e.status === 'active') || null;
+  activeDuphastonEntry = entries.find(e => e.type==='duphaston' && e.status === 'active') || null;
+}
+async function saveEntries(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+  }catch(e){
+    showToast('Could not save — try again');
+  }
+}
+async function loadSettings(){
+  try{
+    const res = await window.storage.get(SETTINGS_KEY, false);
+    if(res && res.value){ settings = Object.assign({longPressMs:1500}, JSON.parse(res.value)); }
+  }catch(e){ /* use defaults */ }
+}
+async function saveSettings(){
+  try{
+    await window.storage.set(SETTINGS_KEY, JSON.stringify(settings), false);
+  }catch(e){
+    showToast('Could not save settings');
+  }
+}
+async function loadWeightEntries(){
+  try{
+    const res = await window.storage.get(WEIGHT_STORAGE_KEY, false);
+    weightEntries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    weightEntries = [];
+  }
+}
+async function saveWeightEntries(){
+  try{
+    await window.storage.set(WEIGHT_STORAGE_KEY, JSON.stringify(weightEntries), false);
+  }catch(e){
+    showToast('Could not save weight — try again');
+  }
+}
+function computeCycleDayForDate(dateISO){
+  const starts = entries.filter(e=>e.type==='menstruation' && e.startDate<=dateISO).map(e=>e.startDate);
+  if(starts.length===0) return null;
+  const mostRecent = starts.sort().slice(-1)[0];
+  return { cycleStartDate: mostRecent, cycleDay: daysBetween(mostRecent, dateISO) + 1 };
+}
+function upsertWeightEntry(dateISO, weightVal){
+  const info = computeCycleDayForDate(dateISO);
+  const existing = weightEntries.find(e=>e.date===dateISO);
+  if(existing){
+    existing.weight = weightVal;
+    existing.cycleDay = info ? info.cycleDay : null;
+    existing.cycleStartDate = info ? info.cycleStartDate : null;
+  } else {
+    weightEntries.push({
+      id: 'w_' + Date.now(),
+      date: dateISO,
+      weight: weightVal,
+      cycleDay: info ? info.cycleDay : null,
+      cycleStartDate: info ? info.cycleStartDate : null
+    });
+  }
+}
+
+/* ============================================================
+   RENDER: TOP BAR
+   ============================================================ */
+function renderTopBar(){
+  document.getElementById('topDate').textContent = formatDateLabel(todayISO());
+  const names = {today:'Today', medication:'Duphaston', weight:'Weight', log:'Entries Log'};
+  document.getElementById('screenName').textContent = names[currentScreen];
+
+  const badge = document.getElementById('cycleBadge');
+  if(activeEntry && currentScreen !== 'log'){
+    const dayNum = daysBetween(activeEntry.startDate, todayISO()) + 1;
+    badge.textContent = 'Day ' + (dayNum > 0 ? dayNum : 1);
+    badge.classList.remove('empty');
+  } else {
+    badge.textContent = '—';
+    badge.classList.add('empty');
+  }
+}
+
+/* ============================================================
+   RENDER: TODAY SCREEN
+   ============================================================ */
+function renderToday(){
+  const el = document.getElementById('screen-today');
+
+  if(!activeEntry){
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="glyph">◈</div>
+        <h2>No cycle in progress</h2>
+        <p>When menstruation starts, add an entry and today's page will appear here — pain, medication, stool and heaviness, quick taps only.</p>
+        <button class="btn btn-primary" id="emptyStateAdd">Start tracking</button>
+      </div>`;
+    document.getElementById('emptyStateAdd').onclick = () => openNewEntryModal('menstruation');
+    return;
+  }
+
+  if(viewingDayIndex >= activeEntry.days.length){ viewingDayIndex = activeEntry.days.length - 1; }
+  const day = activeEntry.days[viewingDayIndex];
+  const dayNum = viewingDayIndex + 1;
+  const totalDays = activeEntry.days.length;
+
+  const dots = activeEntry.days.map((d,i)=>{
+    const filled = dayHasData(d);
+    return `<div class="day-dot ${filled?'filled':''} ${i===viewingDayIndex?'current':''}" data-idx="${i}"></div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="day-nav">
+      <div class="day-nav-arrow ${viewingDayIndex===0?'disabled':''}" id="dayPrev">‹</div>
+      <div class="day-nav-center">
+        <div class="day-label">Day ${dayNum} of ${totalDays}</div>
+        <div class="day-date">${formatDateLabel(day.date)}</div>
+      </div>
+      <div class="day-nav-arrow ${viewingDayIndex===totalDays-1?'disabled':''}" id="dayNext">›</div>
+    </div>
+    <div class="day-dots">${dots}</div>
+
+    <div class="card">
+      <h3>Medication &amp; pain</h3>
+      ${['morning','midday','evening'].map(slot => renderTimeBlock(day, slot)).join('')}
+    </div>
+
+    <div class="card">
+      <h3>Today overall</h3>
+      <div class="field-row">
+        <label>Defecation pain today</label>
+        <div class="toggle-row">
+          <div class="toggle-btn ${day.defecationPain===true?'selected-yes':''}" data-field="defecationPain" data-value="true">Present</div>
+          <div class="toggle-btn ${day.defecationPain===false?'selected-no':''}" data-field="defecationPain" data-value="false">Not noticed</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Stool</label>
+        <select id="stoolSelect">
+          <option value="">— not logged —</option>
+          <option value="normal" ${day.stool==='normal'?'selected':''}>Normal</option>
+          <option value="thin" ${day.stool==='thin'?'selected':''}>Thin</option>
+          <option value="small_hard" ${day.stool==='small_hard'?'selected':''}>Small &amp; hard</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label>Heaviness</label>
+        <select id="heavinessSelect" class="${day.heaviness==='flooding'?'heaviness-flooding':''}">
+          <option value="">— not logged —</option>
+          <option value="spotting" ${day.heaviness==='spotting'?'selected':''}>Spotting</option>
+          <option value="light" ${day.heaviness==='light'?'selected':''}>Light</option>
+          <option value="medium" ${day.heaviness==='medium'?'selected':''}>Medium</option>
+          <option value="heavy" ${day.heaviness==='heavy'?'selected':''}>Heavy (max without intervention)</option>
+          <option value="flooding" ${day.heaviness==='flooding'?'selected':''}>Flooding (took tranexam / would inform doctor)</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label>Energy</label>
+        <select id="energySelect">
+          <option value="">— not logged —</option>
+          <option value="very_low" ${day.energy==='very_low'?'selected':''}>Very low</option>
+          <option value="low" ${day.energy==='low'?'selected':''}>Low</option>
+          <option value="normal" ${day.energy==='normal'?'selected':''}>Normal</option>
+          <option value="high" ${day.energy==='high'?'selected':''}>High</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label>Note</label>
+        <textarea id="noteField" placeholder="e.g. two pads by evening, pooling with chunks…">${day.note || ''}</textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-danger-outline btn-block" id="finishTrackingBtn">Finish tracking this cycle</button>
+  `;
+
+  // wire events
+  document.getElementById('dayPrev').onclick = () => { if(viewingDayIndex>0){ viewingDayIndex--; renderToday(); } };
+  document.getElementById('dayNext').onclick = () => { if(viewingDayIndex<totalDays-1){ viewingDayIndex++; renderToday(); } };
+  document.querySelectorAll('.day-dot').forEach(dot=>{
+    dot.onclick = () => { viewingDayIndex = parseInt(dot.dataset.idx); renderToday(); };
+  });
+
+  document.querySelectorAll('.pain-btn').forEach(btn=>{
+    btn.onclick = () => {
+      const slot = btn.dataset.slot;
+      const val = parseInt(btn.dataset.val);
+      day[slot].pain = (day[slot].pain === val) ? null : val;
+      saveEntries(); renderToday();
+    };
+  });
+
+  document.querySelectorAll('.toggle-btn').forEach(btn=>{
+    btn.onclick = () => {
+      const val = btn.dataset.value === 'true';
+      day.defecationPain = (day.defecationPain === val) ? null : val;
+      saveEntries(); renderToday();
+    };
+  });
+
+  document.getElementById('stoolSelect').onchange = (e) => { day.stool = e.target.value || null; saveEntries(); };
+  document.getElementById('heavinessSelect').onchange = (e) => { day.heaviness = e.target.value || null; saveEntries(); renderToday(); };
+  document.getElementById('energySelect').onchange = (e) => { day.energy = e.target.value || null; saveEntries(); };
+  document.getElementById('noteField').onblur = (e) => { day.note = e.target.value; saveEntries(); };
+
+  document.querySelectorAll('.med-add-btn').forEach(btn=>{
+    btn.onclick = () => {
+      const slot = btn.dataset.slot;
+      const sel = document.getElementById('medSelect_'+slot);
+      const medId = sel.value;
+      if(!medId) return;
+      if(medId === 'other'){
+        const manual = prompt('Enter medication (name, dose):');
+        if(manual && manual.trim()){
+          day[slot].meds.push({id:'other', label: manual.trim()});
+        }
+      } else {
+        const opt = MED_OPTIONS.find(m=>m.id===medId);
+        day[slot].meds.push({id: opt.id, label: opt.label});
+      }
+      sel.value = '';
+      saveEntries(); renderToday();
+    };
+  });
+
+  document.querySelectorAll('.chip-remove').forEach(btn=>{
+    btn.onclick = () => {
+      const slot = btn.dataset.slot;
+      const idx = parseInt(btn.dataset.idx);
+      day[slot].meds.splice(idx,1);
+      saveEntries(); renderToday();
+    };
+  });
+
+  document.getElementById('finishTrackingBtn').onclick = () => openFinishModal('menstruation');
+}
+
+function renderTimeBlock(day, slot){
+  const labels = {morning:'Morning', midday:'Midday', evening:'Evening'};
+  const block = day[slot];
+  const chips = block.meds.map((m,i)=>`
+    <div class="chip">${m.label}<button class="chip-remove" data-slot="${slot}" data-idx="${i}">×</button></div>
+  `).join('');
+  const painButtons = [0,1,2,3,4,5].map(v=>`
+    <div class="pain-btn ${block.pain===v?'selected':''}" data-slot="${slot}" data-val="${v}">${v}</div>
+  `).join('');
+
+  return `
+    <div class="timeblock">
+      <div class="timeblock-label">${labels[slot]}</div>
+      <div class="field-row">
+        <label>Pain level (0 none — 5 worst)</label>
+        <div class="pain-scale">${painButtons}</div>
+      </div>
+      <div class="field-row">
+        <label>Medication taken</label>
+        <div class="med-add-row">
+          <select id="medSelect_${slot}">
+            <option value="">Add medication…</option>
+            ${MED_OPTIONS.map(m=>`<option value="${m.id}">${m.label}</option>`).join('')}
+          </select>
+          <button class="med-add-btn" data-slot="${slot}">+</button>
+        </div>
+        <div class="chip-row">${chips}</div>
+      </div>
+    </div>
+  `;
+}
+
+function dayHasData(d){
+  return d.morning.pain!==null || d.midday.pain!==null || d.evening.pain!==null ||
+    d.morning.meds.length || d.midday.meds.length || d.evening.meds.length ||
+    d.defecationPain!==null || d.stool || d.heaviness || d.energy || (d.note && d.note.trim());
+}
+
+/* ============================================================
+   LONG PRESS (used by Duphaston pill check-offs)
+   ============================================================ */
+function bindLongPress(el, onComplete, duration){
+  if(duration === undefined) duration = settings.longPressMs;
+  let timer = null;
+  const start = (e) => {
+    e.preventDefault();
+    el.classList.add('holding');
+    timer = setTimeout(() => {
+      el.classList.remove('holding');
+      if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(err){} }
+      onComplete();
+    }, duration);
+  };
+  const cancel = () => {
+    clearTimeout(timer);
+    el.classList.remove('holding');
+  };
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('contextmenu', (e)=>e.preventDefault());
+}
+
+/* ============================================================
+   RENDER: MEDICATION (DUPHASTON) SCREEN
+   ============================================================ */
+function renderMedication(){
+  const el = document.getElementById('screen-medication');
+
+  if(!activeDuphastonEntry){
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="glyph">◐</div>
+        <h2>No Duphaston course logged</h2>
+        <p>Start a course and the 20-day list appears here. Long-press each pill once it's taken, so a stray tap can't uncheck it by accident.</p>
+        <button class="btn btn-primary" id="emptyStateAddDuph">Start Duphaston tracking</button>
+      </div>`;
+    document.getElementById('emptyStateAddDuph').onclick = () => openNewEntryModal('duphaston');
+    return;
+  }
+
+  const entry = activeDuphastonEntry;
+  const totalDoses = entry.days.length * 2;
+  const takenDoses = entry.days.reduce((s,d)=> s + (d.morningTaken?1:0) + (d.eveningTaken?1:0), 0);
+  const remaining = totalDoses - takenDoses;
+  const today = todayISO();
+
+  const rows = entry.days.map((d,i)=>`
+    <div class="duph-day ${d.date===today?'is-today':''}">
+      <div class="duph-day-date">
+        <div class="duph-day-num">Day ${i+1}</div>
+        <div class="duph-day-label">${formatDateLabel(d.date)}</div>
+      </div>
+      <div class="duph-pills">
+        <div class="pill-check ${d.morningTaken?'checked':''}" data-idx="${i}" data-slot="morningTaken">${d.morningTaken?'✓':'AM'}</div>
+        <div class="pill-check ${d.eveningTaken?'checked':''}" data-idx="${i}" data-slot="eveningTaken">${d.eveningTaken?'✓':'PM'}</div>
+      </div>
+      <button class="duph-note-toggle" data-idx="${i}">✎</button>
+    </div>
+    <div class="duph-note-area" id="duphNoteArea_${i}" style="display:${d.note && d.note.trim() ? 'block':'none'}">
+      <textarea id="duphNote_${i}" placeholder="Spotting, stool changes…">${d.note || ''}</textarea>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="duph-summary">
+      <div>
+        <div class="duph-summary-main">${remaining} <span style="font-size:12px; font-weight:600;">left (${remaining % 2 === 0 ? 'even' : 'odd'})</span></div>
+        <div class="duph-summary-sub">${takenDoses} of ${totalDoses} doses logged</div>
+      </div>
+      <div class="duph-summary-days">Planned end<br><b>${formatDateLabel(entry.plannedEndDate)}</b></div>
+    </div>
+    <div class="duph-list">${rows}</div>
+    <button class="btn btn-danger-outline btn-block" id="finishDuphastonBtn">Finish tracking this course</button>
+  `;
+
+  document.querySelectorAll('.pill-check').forEach(pc=>{
+    bindLongPress(pc, () => {
+      const idx = parseInt(pc.dataset.idx);
+      const slot = pc.dataset.slot;
+      entry.days[idx][slot] = !entry.days[idx][slot];
+      saveEntries();
+      renderMedication();
+      renderTopBar();
+    });
+  });
+
+  document.querySelectorAll('.duph-note-toggle').forEach(btn=>{
+    btn.onclick = () => {
+      const area = document.getElementById('duphNoteArea_' + btn.dataset.idx);
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+      if(area.style.display === 'block') document.getElementById('duphNote_' + btn.dataset.idx).focus();
+    };
+  });
+
+  entry.days.forEach((d,i)=>{
+    const ta = document.getElementById('duphNote_'+i);
+    if(ta){ ta.onblur = (e) => { d.note = e.target.value; saveEntries(); }; }
+  });
+
+  document.getElementById('finishDuphastonBtn').onclick = () => openFinishModal('duphaston');
+}
+
+function computeDuphastonSummary(entry){
+  const totalScheduledDoses = entry.days.length * 2;
+  const takenDoses = entry.days.reduce((s,d)=> s + (d.morningTaken?1:0) + (d.eveningTaken?1:0), 0);
+  return {
+    lengthDays: entry.days.length,
+    takenDoses,
+    totalScheduledDoses,
+    missedDoses: totalScheduledDoses - takenDoses
+  };
+}
+
+/* ============================================================
+   RENDER: WEIGHT SCREEN
+   ============================================================ */
+function buildChartSVG(seriesList, xMin, xMax, xTickValues, xTickLabelFn){
+  const width=336, height=200, padL=36, padR=10, padT=10, padB=26;
+  const plotW = width-padL-padR, plotH = height-padT-padB;
+  let yMin=Infinity, yMax=-Infinity;
+  seriesList.forEach(s=> s.points.forEach(p=>{ if(p.y<yMin)yMin=p.y; if(p.y>yMax)yMax=p.y; }));
+  if(!isFinite(yMin)){ yMin=0; yMax=1; }
+  if(yMin===yMax){ yMin-=0.5; yMax+=0.5; }
+  const yPad = (yMax-yMin)*0.15 || 0.5;
+  yMin -= yPad; yMax += yPad;
+  const xSpan = (xMax-xMin) || 1;
+  const xScale = x => padL + ((x-xMin)/xSpan)*plotW;
+  const yScale = y => padT + plotH - ((y-yMin)/(yMax-yMin))*plotH;
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" class="weight-chart-svg">`;
+  for(let i=0;i<=2;i++){
+    const yVal = yMin + (yMax-yMin)*(i/2);
+    const yy = yScale(yVal);
+    svg += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${width-padR}" y2="${yy.toFixed(1)}" stroke="#E3D9D1" stroke-width="1"/>`;
+    svg += `<text x="${padL-6}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#A79C9F" font-family="IBM Plex Mono, monospace">${yVal.toFixed(1)}</text>`;
+  }
+  xTickValues.forEach(xv=>{
+    const xx = xScale(xv);
+    svg += `<text x="${xx.toFixed(1)}" y="${height-8}" text-anchor="middle" font-size="9" fill="#A79C9F" font-family="IBM Plex Mono, monospace">${xTickLabelFn(xv)}</text>`;
+  });
+  seriesList.forEach(s=>{
+    if(s.points.length===0) return;
+    const sorted = [...s.points].sort((a,b)=>a.x-b.x);
+    if(sorted.length>1){
+      const pathD = sorted.map((p,i)=> (i===0?'M':'L')+xScale(p.x).toFixed(1)+','+yScale(p.y).toFixed(1)).join(' ');
+      svg += `<path d="${pathD}" fill="none" stroke="${s.color}" stroke-width="${s.width||2}" stroke-linecap="round" stroke-linejoin="round" opacity="${s.opacity!==undefined?s.opacity:1}"/>`;
+    }
+    sorted.forEach(p=>{
+      svg += `<circle cx="${xScale(p.x).toFixed(1)}" cy="${yScale(p.y).toFixed(1)}" r="${s.dotR||2.6}" fill="${s.color}" opacity="${s.opacity!==undefined?s.opacity:1}"/>`;
+    });
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+function buildTimelineChart(sorted, mode){
+  let filtered;
+  if(mode==='month'){
+    const cutoff = addDays(todayISO(), -29);
+    filtered = sorted.filter(e=> e.date>=cutoff);
+  } else {
+    filtered = sorted;
+  }
+  if(filtered.length===0) filtered = sorted.slice(-1);
+  const xMin = new Date(filtered[0].date+'T00:00:00').getTime();
+  const xMax = new Date(filtered[filtered.length-1].date+'T00:00:00').getTime();
+  const points = filtered.map(e=> ({x: new Date(e.date+'T00:00:00').getTime(), y: e.weight}));
+  const series = [{ points, color:'#8C3B4A', width:2, dotR:2.8 }];
+  const tickCount = Math.min(4, filtered.length);
+  const xTicks = [];
+  for(let i=0;i<tickCount;i++){
+    xTicks.push(xMin + (xMax-xMin)*(tickCount===1?0:i/(tickCount-1)));
+  }
+  const labelFn = (t)=> new Date(t).toLocaleDateString('en-GB',{day:'numeric', month:'short'});
+  return buildChartSVG(series, xMin, xMax, xTicks, labelFn);
+}
+
+function buildCycleOnCycleChart(sorted){
+  const cycleStarts = [...new Set(sorted.filter(e=>e.cycleStartDate).map(e=>e.cycleStartDate))]
+    .sort((a,b)=> b.localeCompare(a))
+    .slice(0,3);
+  if(cycleStarts.length===0){
+    return `<div class="chart-empty-msg">No cycle-linked weight data yet — log weight while a menstruation cycle is active and it'll show up here.</div>`;
+  }
+  const colors = ['#8C3B4A', '#B8863B', '#A79C9F'];
+  const series = cycleStarts.map((cs,i)=>{
+    const pts = sorted.filter(e=>e.cycleStartDate===cs).map(e=>({x:e.cycleDay, y:e.weight}));
+    return { points: pts, color: colors[i]||'#A79C9F', width: i===0?2.4:1.6, dotR: i===0?3:2.2, opacity: i===0?1:0.7, label: formatDateLabel(cs) };
+  });
+  let maxDay = 28;
+  series.forEach(s=> s.points.forEach(p=>{ if(p.x>maxDay) maxDay=p.x; }));
+  const xTicks = [1,7,14,21,28].filter(t=>t<=maxDay);
+  if(xTicks[xTicks.length-1]!==maxDay) xTicks.push(maxDay);
+  const chart = buildChartSVG(series, 1, maxDay, xTicks, (t)=>String(Math.round(t)));
+  const legend = `<div class="chart-legend">${series.map(s=>`<div class="legend-item"><span class="legend-dot" style="background:${s.color}"></span>${s.label}</div>`).join('')}</div>`;
+  return chart + legend;
+}
+
+function weightToCSV(list){
+  let out = 'date,weight_kg,cycle_day,cycle_start_date\n';
+  [...list].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    out += `${e.date},${e.weight},${e.cycleDay ?? ''},${e.cycleStartDate ?? ''}\n`;
+  });
+  return out;
+}
+
+function renderWeight(){
+  const el = document.getElementById('screen-weight');
+
+  if(weightEntries.length===0){
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="glyph">▲</div>
+        <h2>No weight logged yet</h2>
+        <p>Log your morning weight and this screen builds a rolling average, plus a graph you can compare cycle to cycle.</p>
+        <button class="btn btn-primary" id="emptyStateAddWeight">Log weight</button>
+      </div>`;
+    document.getElementById('emptyStateAddWeight').onclick = () => openNewEntryModal('weight');
+    return;
+  }
+
+  const sorted = [...weightEntries].sort((a,b)=> a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length-1];
+
+  const anchorDate = latest.date;
+  const windowStart = addDays(anchorDate, -6);
+  const windowEntries = sorted.filter(e=> e.date>=windowStart && e.date<=anchorDate);
+  const avg7 = windowEntries.length ? (windowEntries.reduce((s,e)=>s+e.weight,0)/windowEntries.length) : null;
+
+  let prevCycleLine = 'Not currently in a tracked cycle.';
+  if(activeEntry){
+    const todayCycleInfo = computeCycleDayForDate(todayISO());
+    if(todayCycleInfo){
+      const sameDayPast = sorted.filter(e=> e.cycleDay===todayCycleInfo.cycleDay && e.cycleStartDate!==todayCycleInfo.cycleStartDate)
+        .sort((a,b)=> b.cycleStartDate.localeCompare(a.cycleStartDate));
+      if(sameDayPast.length){
+        prevCycleLine = `Cycle day ${todayCycleInfo.cycleDay}: previously ${sameDayPast[0].weight.toFixed(1)} kg (cycle started ${formatDateLabel(sameDayPast[0].cycleStartDate)})`;
+      } else {
+        prevCycleLine = `Cycle day ${todayCycleInfo.cycleDay}: no previous data for this day yet.`;
+      }
+    }
+  }
+
+  const chartSVG = weightViewMode === 'cycle' ? buildCycleOnCycleChart(sorted) : buildTimelineChart(sorted, weightViewMode);
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="weight-stat-row">
+        <div class="weight-stat">
+          <div class="weight-stat-label">7-day average</div>
+          <div class="weight-stat-value">${avg7!==null ? avg7.toFixed(1)+' kg' : '—'}</div>
+        </div>
+        <div class="weight-stat">
+          <div class="weight-stat-label">Latest (${formatDateLabel(latest.date)})</div>
+          <div class="weight-stat-value">${latest.weight.toFixed(1)} kg</div>
+        </div>
+      </div>
+      <div class="weight-prev-note">${prevCycleLine}</div>
+    </div>
+
+    <div class="segmented">
+      <div class="segmented-item ${weightViewMode==='month'?'selected':''}" data-mode="month">Last month</div>
+      <div class="segmented-item ${weightViewMode==='all'?'selected':''}" data-mode="all">All time</div>
+      <div class="segmented-item ${weightViewMode==='cycle'?'selected':''}" data-mode="cycle">Cycle on cycle</div>
+    </div>
+
+    <div class="card weight-chart-card">${chartSVG}</div>
+
+    <div class="log-actions" style="margin-top:4px;">
+      <button class="btn btn-secondary" id="exportWeightCsvBtn">Export .csv</button>
+      <button class="btn btn-secondary" id="exportWeightJsonBtn">Export .json</button>
+    </div>
+    <button class="btn btn-danger-outline btn-block" id="deleteLatestWeightBtn" style="margin-top:8px;">Remove latest</button>
+  `;
+
+  document.querySelectorAll('.segmented-item').forEach(item=>{
+    item.onclick = () => { weightViewMode = item.dataset.mode; renderWeight(); };
+  });
+
+  document.getElementById('exportWeightCsvBtn').onclick = () => downloadText(weightToCSV(weightEntries), 'weight-log.csv');
+  document.getElementById('exportWeightJsonBtn').onclick = () => downloadText(JSON.stringify(weightEntries, null, 2), 'weight-log.json');
+
+  document.getElementById('deleteLatestWeightBtn').onclick = async () => {
+    weightEntries = weightEntries.filter(e=>e.id!==latest.id);
+    await saveWeightEntries();
+    renderWeight();
+    showToast('Entry removed');
+  };
+}
+
+/* ============================================================
+   SUMMARY / FINISH
+   ============================================================ */
+function computeSummary(entry){
+  let painValues = [];
+  let maxPain = null;
+  let defecationPainDays = 0;
+  let medCounts = {};
+  let lastDataDayIndex = 0;
+
+  entry.days.forEach((d, i) => {
+    if(dayHasData(d)) lastDataDayIndex = i;
+    ['morning','midday','evening'].forEach(slot=>{
+      if(d[slot].pain !== null){
+        painValues.push(d[slot].pain);
+        if(maxPain === null || d[slot].pain > maxPain) maxPain = d[slot].pain;
+      }
+      d[slot].meds.forEach(m=>{
+        medCounts[m.label] = (medCounts[m.label]||0) + 1;
+      });
+    });
+    if(d.defecationPain === true) defecationPainDays++;
+  });
+
+  const avgPain = painValues.length ? (painValues.reduce((a,b)=>a+b,0)/painValues.length) : null;
+  const lengthDays = lastDataDayIndex + 1;
+
+  return {
+    lengthDays,
+    avgPain: avgPain !== null ? Math.round(avgPain*10)/10 : null,
+    maxPain,
+    defecationPainDays,
+    medCounts
+  };
+}
+
+/* ============================================================
+   LOG SCREEN
+   ============================================================ */
+function renderLog(){
+  const el = document.getElementById('logContent');
+  if(entries.length === 0){
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="glyph">☰</div>
+        <h2>Nothing archived yet</h2>
+        <p>Finished cycles will appear here, each with a quick-glance summary and export options.</p>
+      </div>`;
+    return;
+  }
+
+  const sorted = [...entries].sort((a,b)=> b.startDate.localeCompare(a.startDate));
+
+  el.innerHTML = `
+    <div class="section-title">All entries</div>
+    ${sorted.map(entry => renderLogCard(entry)).join('')}
+    <button class="btn btn-secondary btn-block" id="exportAllBtn" style="margin-top:6px;">Export all (Markdown + JSON)</button>
+  `;
+
+  document.getElementById('exportAllBtn').onclick = exportAll;
+
+  sorted.forEach(entry=>{
+    const mdBtn = document.getElementById('md_'+entry.id);
+    const jsonBtn = document.getElementById('json_'+entry.id);
+    const delBtn = document.getElementById('del_'+entry.id);
+    if(mdBtn) mdBtn.onclick = () => downloadText(entryToMarkdown(entry), `cycle-${entry.startDate}.md`);
+    if(jsonBtn) jsonBtn.onclick = () => downloadText(JSON.stringify(entry, null, 2), `cycle-${entry.startDate}.json`);
+    if(delBtn) delBtn.onclick = () => openDeleteEntryModal(entry.id);
+  });
+}
+
+function renderLogCard(entry){
+  if(entry.type === 'duphaston'){
+    const s = entry.summary || computeDuphastonSummary(entry);
+    return `
+      <div class="log-entry">
+        <div class="log-entry-top">
+          <div class="log-entry-title">Duphaston — ${formatDateLabel(entry.startDate)}</div>
+          <div class="log-entry-top-right">
+            <div class="log-entry-status ${entry.status==='active'?'status-active':'status-finished'}">${entry.status}</div>
+            <button class="log-entry-delete" id="del_${entry.id}" aria-label="Delete entry">🗑</button>
+          </div>
+        </div>
+        <div class="log-stats">
+          <div>Days logged <b>${s.lengthDays}</b></div>
+          <div>Doses taken <b>${s.takenDoses}/${s.totalScheduledDoses}</b></div>
+        </div>
+        <div class="log-actions">
+          <button class="btn btn-secondary" id="md_${entry.id}">Export .md</button>
+          <button class="btn btn-secondary" id="json_${entry.id}">Export .json</button>
+        </div>
+      </div>
+    `;
+  }
+  const s = entry.summary || computeSummary(entry);
+  const medLine = Object.entries(s.medCounts).map(([k,v])=>`${k} ×${v}`).join(', ') || '—';
+  return `
+    <div class="log-entry">
+      <div class="log-entry-top">
+        <div class="log-entry-title">${formatDateLabel(entry.startDate)}</div>
+        <div class="log-entry-top-right">
+          <div class="log-entry-status ${entry.status==='active'?'status-active':'status-finished'}">${entry.status}</div>
+          <button class="log-entry-delete" id="del_${entry.id}" aria-label="Delete entry">🗑</button>
+        </div>
+      </div>
+      <div class="log-stats">
+        <div>Length <b>${s.lengthDays} d</b></div>
+        <div>Avg pain <b>${s.avgPain ?? '—'}</b></div>
+        <div>Max pain <b>${s.maxPain ?? '—'}</b></div>
+        <div>Defecation pain <b>${s.defecationPainDays} d</b></div>
+      </div>
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">${medLine}</div>
+      <div class="log-actions">
+        <button class="btn btn-secondary" id="md_${entry.id}">Export .md</button>
+        <button class="btn btn-secondary" id="json_${entry.id}">Export .json</button>
+      </div>
+    </div>
+  `;
+}
+
+function entryToMarkdown(entry){
+  if(entry.type === 'duphaston') return duphastonToMarkdown(entry);
+  const s = entry.summary || computeSummary(entry);
+  let out = `# Menstruation cycle — starting ${entry.startDate}\n\n`;
+  out += `Status: ${entry.status}\n`;
+  out += `Length tracked: ${s.lengthDays} day(s)\n`;
+  out += `Average pain: ${s.avgPain ?? 'n/a'} / 5\n`;
+  out += `Maximum pain: ${s.maxPain ?? 'n/a'} / 5\n`;
+  out += `Days with defecation pain: ${s.defecationPainDays}\n`;
+  out += `Medication totals: ${Object.entries(s.medCounts).map(([k,v])=>`${k} ×${v}`).join(', ') || 'none logged'}\n\n`;
+  out += `## Day by day\n\n`;
+  entry.days.forEach((d,i)=>{
+    if(!dayHasData(d)) return;
+    out += `### Day ${i+1} — ${d.date}\n`;
+    ['morning','midday','evening'].forEach(slot=>{
+      const b = d[slot];
+      if(b.pain===null && b.meds.length===0) return;
+      out += `- ${slot}: pain ${b.pain ?? 'n/a'}`;
+      if(b.meds.length) out += `, medication: ${b.meds.map(m=>m.label).join(', ')}`;
+      out += `\n`;
+    });
+    if(d.defecationPain !== null) out += `- defecation pain: ${d.defecationPain ? 'present' : 'not noticed'}\n`;
+    if(d.stool) out += `- stool: ${d.stool.replace('_',' & ')}\n`;
+    if(d.heaviness) out += `- heaviness: ${d.heaviness}\n`;
+    if(d.energy) out += `- energy: ${d.energy.replace('_',' ')}\n`;
+    if(d.note && d.note.trim()) out += `- note: ${d.note.trim()}\n`;
+    out += `\n`;
+  });
+  return out;
+}
+
+function duphastonToMarkdown(entry){
+  const s = entry.summary || computeDuphastonSummary(entry);
+  let out = `# Duphaston course — starting ${entry.startDate}\n\n`;
+  out += `Status: ${entry.status}\n`;
+  out += `Days logged: ${s.lengthDays}\n`;
+  out += `Doses taken: ${s.takenDoses} / ${s.totalScheduledDoses}\n\n`;
+  out += `## Day by day\n\n`;
+  entry.days.forEach((d,i)=>{
+    out += `- Day ${i+1} (${d.date}): morning ${d.morningTaken?'taken':'—'}, evening ${d.eveningTaken?'taken':'—'}`;
+    if(d.note && d.note.trim()) out += ` — note: ${d.note.trim()}`;
+    out += `\n`;
+  });
+  return out;
+}
+
+function exportAll(){
+  const md = entries.map(entryToMarkdown).join('\n---\n\n');
+  downloadText(md, 'cycle-log-export.md');
+  downloadText(JSON.stringify(entries, null, 2), 'cycle-log-export.json');
+}
+
+function downloadText(text, filename){
+  const blob = new Blob([text], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported ' + filename);
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function switchScreen(name){
+  currentScreen = name;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.screen===name));
+  document.getElementById('fabAdd').style.display = 'flex';
+  renderTopBar();
+  if(name==='today') renderToday();
+  if(name==='medication') renderMedication();
+  if(name==='weight') renderWeight();
+  if(name==='log') renderLog();
+}
+
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.onclick = () => switchScreen(item.dataset.screen);
+});
+
+/* ============================================================
+   NEW ENTRY MODAL
+   ============================================================ */
+function openNewEntryModal(presetType){
+  newEntryType = presetType || null;
+  document.getElementById('newEntryDate').value = todayISO();
+  document.getElementById('newEntryWeightValue').value = '';
+  updateNewEntryModalUI();
+  prefillWeightIfNeeded();
+  document.getElementById('modalNewEntry').classList.add('open');
+}
+function prefillWeightIfNeeded(){
+  if(newEntryType !== 'weight') return;
+  const date = document.getElementById('newEntryDate').value;
+  const existing = weightEntries.find(e=>e.date===date);
+  document.getElementById('newEntryWeightValue').value = existing ? existing.weight : '';
+}
+document.getElementById('newEntryDate').onchange = prefillWeightIfNeeded;
+function updateNewEntryModalUI(){
+  const chooserRow = document.getElementById('typeChoiceRow');
+  const dateLabel = document.getElementById('newEntryDateLabel');
+  const confirmBtn = document.getElementById('confirmNewEntry');
+  const weightRow = document.getElementById('weightValueRow');
+  chooserRow.style.display = newEntryType ? 'none' : 'flex';
+  document.querySelectorAll('.type-pill').forEach(p=>p.classList.toggle('selected', p.dataset.type===newEntryType));
+  if(newEntryType === 'duphaston') dateLabel.textContent = 'First day of Duphaston';
+  else if(newEntryType === 'weight') dateLabel.textContent = 'Date';
+  else dateLabel.textContent = 'First day of menstruation';
+  weightRow.style.display = newEntryType === 'weight' ? 'block' : 'none';
+  confirmBtn.disabled = !newEntryType;
+}
+document.querySelectorAll('.type-pill').forEach(p=>{
+  p.onclick = () => { newEntryType = p.dataset.type; updateNewEntryModalUI(); prefillWeightIfNeeded(); };
+});
+document.getElementById('fabAdd').onclick = () => openNewEntryModal(null);
+document.getElementById('cancelNewEntry').onclick = () => document.getElementById('modalNewEntry').classList.remove('open');
+document.getElementById('confirmNewEntry').onclick = async () => {
+  if(!newEntryType) return;
+  const date = document.getElementById('newEntryDate').value;
+  if(!date) return;
+
+  if(newEntryType === 'menstruation'){
+    if(activeEntry){
+      document.getElementById('modalNewEntry').classList.remove('open');
+      switchScreen('today');
+      showToast('Menstruation already being tracked');
+      return;
+    }
+    const entry = createMenstruationEntry(date);
+    entries.push(entry);
+    activeEntry = entry;
+    viewingDayIndex = Math.min(entry.days.length-1, Math.max(0, daysBetween(date, todayISO())));
+    await saveEntries();
+    document.getElementById('modalNewEntry').classList.remove('open');
+    switchScreen('today');
+    showToast('Cycle started');
+  } else if(newEntryType === 'duphaston'){
+    if(activeDuphastonEntry){
+      document.getElementById('modalNewEntry').classList.remove('open');
+      switchScreen('medication');
+      showToast('Duphaston already being tracked');
+      return;
+    }
+    const entry = createDuphastonEntry(date);
+    entries.push(entry);
+    activeDuphastonEntry = entry;
+    await saveEntries();
+    document.getElementById('modalNewEntry').classList.remove('open');
+    switchScreen('medication');
+    showToast('Duphaston course started');
+  } else if(newEntryType === 'weight'){
+    const val = parseFloat(document.getElementById('newEntryWeightValue').value);
+    if(isNaN(val)){ showToast('Enter a weight value'); return; }
+    upsertWeightEntry(date, val);
+    await saveWeightEntries();
+    document.getElementById('modalNewEntry').classList.remove('open');
+    switchScreen('weight');
+    showToast('Weight logged');
+  }
+};
+
+/* ============================================================
+   FINISH MODAL
+   ============================================================ */
+function openFinishModal(type){
+  pendingFinishType = type;
+  const titleEl = document.getElementById('modalFinishTitle');
+  const textEl = document.getElementById('modalFinishText');
+  if(type === 'duphaston'){
+    titleEl.textContent = 'Finish this Duphaston course?';
+    textEl.textContent = 'This saves the course to your archive. Any remaining days on the 20-day list are dropped, not counted as missed.';
+  } else {
+    titleEl.textContent = 'Finish this cycle?';
+    textEl.textContent = 'This saves the entry to your archive and clears the Today screen until you start a new one.';
+  }
+  document.getElementById('modalFinish').classList.add('open');
+}
+document.getElementById('cancelFinish').onclick = () => document.getElementById('modalFinish').classList.remove('open');
+document.getElementById('confirmFinish').onclick = async () => {
+  if(pendingFinishType === 'menstruation' && activeEntry){
+    activeEntry.status = 'finished';
+    activeEntry.finishedDate = todayISO();
+    activeEntry.summary = computeSummary(activeEntry);
+    activeEntry = null;
+    viewingDayIndex = 0;
+    await saveEntries();
+    document.getElementById('modalFinish').classList.remove('open');
+    showToast('Cycle saved to archive');
+    switchScreen('today');
+  } else if(pendingFinishType === 'duphaston' && activeDuphastonEntry){
+    const e = activeDuphastonEntry;
+    e.days = e.days.filter(d => d.date <= todayISO());
+    e.status = 'finished';
+    e.finishedDate = todayISO();
+    e.summary = computeDuphastonSummary(e);
+    activeDuphastonEntry = null;
+    await saveEntries();
+    document.getElementById('modalFinish').classList.remove('open');
+    showToast('Duphaston course saved to archive');
+    switchScreen('medication');
+  } else {
+    document.getElementById('modalFinish').classList.remove('open');
+  }
+  pendingFinishType = null;
+};
+
+function openDeleteEntryModal(id){
+  pendingDeleteEntryId = id;
+  document.getElementById('modalDeleteEntry').classList.add('open');
+}
+document.getElementById('cancelDeleteEntry').onclick = () => {
+  pendingDeleteEntryId = null;
+  document.getElementById('modalDeleteEntry').classList.remove('open');
+};
+document.getElementById('confirmDeleteEntry').onclick = async () => {
+  if(pendingDeleteEntryId){
+    if(activeEntry && activeEntry.id === pendingDeleteEntryId) activeEntry = null;
+    if(activeDuphastonEntry && activeDuphastonEntry.id === pendingDeleteEntryId) activeDuphastonEntry = null;
+    entries = entries.filter(e => e.id !== pendingDeleteEntryId);
+    await saveEntries();
+    pendingDeleteEntryId = null;
+  }
+  document.getElementById('modalDeleteEntry').classList.remove('open');
+  renderLog();
+  renderTopBar();
+  showToast('Entry deleted');
+};
+
+document.getElementById('settingsBtn').onclick = () => {
+  document.getElementById('longPressSlider').value = settings.longPressMs;
+  document.getElementById('longPressValueLabel').textContent = (settings.longPressMs/1000).toFixed(1) + 's';
+  document.getElementById('modalSettings').classList.add('open');
+};
+document.getElementById('longPressSlider').oninput = (e) => {
+  settings.longPressMs = parseInt(e.target.value);
+  document.getElementById('longPressValueLabel').textContent = (settings.longPressMs/1000).toFixed(1) + 's';
+};
+document.getElementById('longPressSlider').onchange = () => { saveSettings(); };
+document.getElementById('closeSettings').onclick = () => {
+  saveSettings();
+  document.getElementById('modalSettings').classList.remove('open');
+};
+document.getElementById('importWeightBtn').onclick = () => {
+  document.getElementById('importWeightFile').click();
+};
+document.getElementById('importWeightFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    let data;
+    try{
+      data = JSON.parse(evt.target.result);
+    }catch(err){
+      showToast('Could not read that file — not valid JSON');
+      e.target.value = '';
+      return;
+    }
+    if(!Array.isArray(data)){
+      showToast('Expected a list of weight entries');
+      e.target.value = '';
+      return;
+    }
+    let imported = 0;
+    data.forEach(item=>{
+      const dateOk = item && typeof item.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.date);
+      const weightVal = item ? parseFloat(item.weight) : NaN;
+      if(dateOk && !isNaN(weightVal)){
+        upsertWeightEntry(item.date, weightVal);
+        imported++;
+      }
+    });
+    if(imported === 0){
+      showToast('No valid weight entries found in that file');
+      e.target.value = '';
+      return;
+    }
+    await saveWeightEntries();
+    e.target.value = '';
+    document.getElementById('modalSettings').classList.remove('open');
+    switchScreen('weight');
+    showToast(`Imported ${imported} weight ${imported===1?'entry':'entries'}`);
+  };
+  reader.readAsText(file);
+};
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  await loadEntries();
+  await loadSettings();
+  await loadWeightEntries();
+  if(activeEntry){
+    viewingDayIndex = Math.min(activeEntry.days.length-1, Math.max(0, daysBetween(activeEntry.startDate, todayISO())));
+  }
+  switchScreen('today');
+})();
+</script>
+</body>
+</html>
