@@ -1,7 +1,7 @@
 // Bump this version string every time you deploy a change.
 // It's the only thing that tells returning devices "there's a new version" —
 // without bumping it, the app keeps serving the old cached files forever.
-const CACHE_NAME = 'cycle-log-v2';
+const CACHE_NAME = 'cycle-log-v4';
 
 const FILES_TO_CACHE = [
   './',

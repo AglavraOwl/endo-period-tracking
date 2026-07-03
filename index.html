@@ -884,7 +884,7 @@ function createMenstruationEntry(startDate){
 function blankDuphastonDay(dateISO){
   return { date: dateISO, morningTaken:false, eveningTaken:false, note:'' };
 }
-function createDuphastonEntry(startDate, durationDays=20){
+function createDuphastonEntry(startDate, durationDays=21){
   const days = [];
   for(let i=0;i<durationDays;i++){ days.push(blankDuphastonDay(addDays(startDate,i))); }
   return {
@@ -1218,7 +1218,7 @@ function renderMedication(){
       <div class="empty-state">
         <div class="glyph">◐</div>
         <h2>No Duphaston course logged</h2>
-        <p>Start a course and the 20-day list appears here. Long-press each pill once it's taken, so a stray tap can't uncheck it by accident.</p>
+        <p>Start a course and the day-by-day list appears here. Long-press each pill once it's taken, so a stray tap can't uncheck it by accident.</p>
         <button class="btn btn-primary" id="emptyStateAddDuph">Start Duphaston tracking</button>
       </div>`;
     document.getElementById('emptyStateAddDuph').onclick = () => openNewEntryModal('duphaston');
@@ -1773,7 +1773,7 @@ function openFinishModal(type){
   const textEl = document.getElementById('modalFinishText');
   if(type === 'duphaston'){
     titleEl.textContent = 'Finish this Duphaston course?';
-    textEl.textContent = 'This saves the course to your archive. Any remaining days on the 20-day list are dropped, not counted as missed.';
+    textEl.textContent = 'This saves the course to your archive. Any remaining days on the list are dropped, not counted as missed.';
   } else {
     titleEl.textContent = 'Finish this cycle?';
     textEl.textContent = 'This saves the entry to your archive and clears the Today screen until you start a new one.';
