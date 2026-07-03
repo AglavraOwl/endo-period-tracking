@@ -1231,10 +1231,13 @@ function renderMedication(){
   const remaining = totalDoses - takenDoses;
   const today = todayISO();
 
-  const rows = entry.days.map((d,i)=>`
+  const rows = entry.days.map((d,i)=>{
+    const cycleInfo = computeCycleDayForDate(d.date);
+    const dayLabel = cycleInfo ? `Day ${cycleInfo.cycleDay}` : `Day ${i+1}`;
+    return `
     <div class="duph-day ${d.date===today?'is-today':''}">
       <div class="duph-day-date">
-        <div class="duph-day-num">Day ${i+1}</div>
+        <div class="duph-day-num">${dayLabel}</div>
         <div class="duph-day-label">${formatDateLabel(d.date)}</div>
       </div>
       <div class="duph-pills">
@@ -1246,7 +1249,8 @@ function renderMedication(){
     <div class="duph-note-area" id="duphNoteArea_${i}" style="display:${d.note && d.note.trim() ? 'block':'none'}">
       <textarea id="duphNote_${i}" placeholder="Spotting, stool changes…">${d.note || ''}</textarea>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   el.innerHTML = `
     <div class="duph-summary">
@@ -1634,7 +1638,9 @@ function duphastonToMarkdown(entry){
   out += `Doses taken: ${s.takenDoses} / ${s.totalScheduledDoses}\n\n`;
   out += `## Day by day\n\n`;
   entry.days.forEach((d,i)=>{
-    out += `- Day ${i+1} (${d.date}): morning ${d.morningTaken?'taken':'—'}, evening ${d.eveningTaken?'taken':'—'}`;
+    const cycleInfo = computeCycleDayForDate(d.date);
+    const dayLabel = cycleInfo ? `Day ${cycleInfo.cycleDay}` : `Day ${i+1}`;
+    out += `- ${dayLabel} (${d.date}): morning ${d.morningTaken?'taken':'—'}, evening ${d.eveningTaken?'taken':'—'}`;
     if(d.note && d.note.trim()) out += ` — note: ${d.note.trim()}`;
     out += `\n`;
   });
