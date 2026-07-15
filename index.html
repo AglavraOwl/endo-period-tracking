@@ -468,10 +468,10 @@ textarea{
   box-shadow: var(--shadow);
 }
 .log-entry-top{
-  display:flex; justify-content:space-between; align-items:center;
+  display:flex; justify-content:space-between; align-items:flex-start;
   margin-bottom:8px;
 }
-.log-entry-top-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.log-entry-top-right{ display:flex; align-items:center; gap:6px; flex-shrink:0; margin-top:2px; }
 .log-entry-delete{
   width:26px; height:26px;
   border-radius:50%;
@@ -484,7 +484,8 @@ textarea{
   flex-shrink:0;
 }
 .log-entry-delete:hover{ color:#a14b3f; border-color:#e3c3c0; }
-.log-entry-title{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; }
+.log-entry-title{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; line-height:1.3; }
+.log-entry-range{ font-family:'IBM Plex Mono', monospace; font-weight:500; font-size:11px; color: var(--ink-soft); }
 .log-entry-status{
   font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
   padding:3px 8px; border-radius:20px;
@@ -501,7 +502,18 @@ textarea{
 }
 .log-stats b{ color: var(--ink); font-family:'IBM Plex Mono', monospace; }
 .log-actions{ display:flex; gap:8px; }
-.log-actions .btn{ flex:1; padding:9px; font-size:13px; }
+.log-actions .btn{ flex:1; padding:9px 4px; font-size:11.5px; }
+.log-entry-view{
+  margin-top:10px;
+  padding:12px;
+  background: var(--surface-sunk);
+  border-radius:8px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  line-height:1.55;
+  max-height:360px;
+  overflow-y:auto;
+}
 
 .section-title{
   font-family:'Fraunces', serif;
@@ -550,19 +562,21 @@ textarea{
   box-shadow: var(--shadow);
 }
 .duph-day.is-today{ outline:1.5px solid var(--sage); outline-offset:-1px; }
-.duph-day-date{ flex:1; min-width:0; }
+.duph-day-date{ flex:0 0 76px; min-width:0; }
 .duph-day-num{ font-family:'Fraunces', serif; font-weight:600; font-size:13.5px; }
 .duph-day-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--ink-faint); }
-.duph-pills{ display:flex; gap:8px; }
+.duph-pills{ display:flex; gap:6px; flex:1; justify-content:center; }
 .pill-check{
-  width:42px; height:42px;
+  width:46px; height:46px;
   border-radius:50%;
   border:2px solid var(--line);
   display:flex; align-items:center; justify-content:center;
-  font-size:10.5px; font-weight:700;
+  font-size:9.5px; font-weight:700;
+  font-family:'IBM Plex Mono', monospace;
   color: var(--ink-faint);
   user-select:none;
   touch-action:none;
+  flex-shrink:0;
   transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
 }
 .pill-check.checked{ background: var(--sage); border-color: var(--sage); color:#fff; }
@@ -678,6 +692,20 @@ textarea{
         <label for="newEntryWeightValue">Weight (kg)</label>
         <input type="number" step="0.1" inputmode="decimal" id="newEntryWeightValue" placeholder="e.g. 62.4">
       </div>
+      <div id="duphastonFieldsRow" style="display:none; margin-top:14px;">
+        <div class="field-row">
+          <label for="newEntryCycleDay">Starting cycle day</label>
+          <input type="number" min="1" max="60" id="newEntryCycleDay">
+        </div>
+        <div class="field-row">
+          <label for="newEntryDuration">Duration (days)</label>
+          <input type="number" min="1" max="60" id="newEntryDuration">
+        </div>
+        <div class="field-row">
+          <label for="newEntryDosesPerDay">Doses per day</label>
+          <input type="number" min="1" max="6" id="newEntryDosesPerDay">
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="cancelNewEntry">Cancel</button>
         <button class="btn btn-primary" id="confirmNewEntry">Create</button>
@@ -706,6 +734,13 @@ textarea{
         <input type="range" id="longPressSlider" min="300" max="3000" step="100" style="width:100%;">
         <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-faint); margin-top:4px;">
           <span>0.3s</span><span>3.0s</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Show dose time in the circle</label>
+        <div class="toggle-row">
+          <div class="toggle-btn" id="showTimeOn">Show time</div>
+          <div class="toggle-btn" id="showTimeOff">Show checkmark</div>
         </div>
       </div>
       <div class="modal-actions">
@@ -822,7 +857,7 @@ let currentScreen = 'today';
 let newEntryType = null;
 let pendingFinishType = null;
 let pendingDeleteEntryId = null;
-let settings = { longPressMs: 1500 };
+let settings = { longPressMs: 1500, showDuphastonTime: true };
 const SETTINGS_KEY = 'app-settings';
 let weightEntries = [];
 const WEIGHT_STORAGE_KEY = 'weight-entries';
@@ -851,6 +886,29 @@ function daysBetween(a,b){
 function formatDateLabel(iso){
   const d = new Date(iso+'T00:00:00');
   return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+}
+function formatShortDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+}
+function formatEntryRange(entry){
+  if(entry.status === 'finished' && entry.finishedDate){
+    return `${formatShortDate(entry.startDate)} – ${formatShortDate(entry.finishedDate)}`;
+  }
+  return `started ${formatShortDate(entry.startDate)} · ongoing`;
+}
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function markdownToSimpleHtml(md){
+  return md.split('\n').map(line=>{
+    if(line.startsWith('### ')) return `<div style="font-weight:600; margin:10px 0 3px; font-family:'Fraunces',serif;">${escapeHtml(line.slice(4))}</div>`;
+    if(line.startsWith('## ')) return `<div style="font-weight:600; margin:12px 0 4px; color:var(--wine-deep); font-family:'Fraunces',serif;">${escapeHtml(line.slice(3))}</div>`;
+    if(line.startsWith('# ')) return `<div style="font-weight:600; font-size:14px; margin:2px 0 8px; font-family:'Fraunces',serif;">${escapeHtml(line.slice(2))}</div>`;
+    if(line.startsWith('- ')) return `<div style="padding-left:8px;">• ${escapeHtml(line.slice(2))}</div>`;
+    if(line.trim()==='') return `<div style="height:6px;"></div>`;
+    return `<div>${escapeHtml(line)}</div>`;
+  }).join('');
 }
 
 function blankTimeBlock(){ return { pain:null, meds:[] }; }
@@ -881,22 +939,52 @@ function createMenstruationEntry(startDate){
   };
 }
 
-function blankDuphastonDay(dateISO){
-  return { date: dateISO, morningTaken:false, eveningTaken:false, note:'' };
+function blankDuphastonDay(dateISO, dosesPerDay){
+  return {
+    date: dateISO,
+    doses: Array.from({length: dosesPerDay}, () => ({ taken: false, time: null })),
+    note: ''
+  };
 }
-function createDuphastonEntry(startDate, durationDays=21){
+function createDuphastonEntry(startDate, startCycleDay, durationDays, dosesPerDay){
   const days = [];
-  for(let i=0;i<durationDays;i++){ days.push(blankDuphastonDay(addDays(startDate,i))); }
+  for(let i=0;i<durationDays;i++){ days.push(blankDuphastonDay(addDays(startDate,i), dosesPerDay)); }
   return {
     id: 'd_' + Date.now(),
     type: 'duphaston',
     startDate,
+    startCycleDay,
+    durationDays,
+    dosesPerDay,
     plannedEndDate: addDays(startDate, durationDays-1),
     status: 'active',
     finishedDate: null,
     days,
     summary: null
   };
+}
+// Upgrades entries created before flexible dose counts / cycle-day entry existed,
+// so real data already logged on-device keeps working after this update.
+function migrateDuphastonEntry(e){
+  if(e.type !== 'duphaston') return e;
+  const alreadyNewFormat = e.dosesPerDay && e.days.length && Array.isArray(e.days[0].doses);
+  if(alreadyNewFormat) return e;
+  const dosesPerDay = 2; // old format was always AM/PM
+  if(!e.startCycleDay){
+    const info = computeCycleDayForDate(e.startDate);
+    e.startCycleDay = info ? info.cycleDay : 1;
+  }
+  e.dosesPerDay = dosesPerDay;
+  e.durationDays = e.days.length;
+  e.days = e.days.map(d => ({
+    date: d.date,
+    doses: [
+      { taken: !!d.morningTaken, time: null },
+      { taken: !!d.eveningTaken, time: null }
+    ],
+    note: d.note || ''
+  }));
+  return e;
 }
 
 /* ============================================================
@@ -909,6 +997,8 @@ async function loadEntries(){
   }catch(e){
     entries = [];
   }
+  entries = entries.map(migrateDuphastonEntry);
+  await saveEntries();
   activeEntry = entries.find(e => e.type==='menstruation' && e.status === 'active') || null;
   activeDuphastonEntry = entries.find(e => e.type==='duphaston' && e.status === 'active') || null;
 }
@@ -922,7 +1012,7 @@ async function saveEntries(){
 async function loadSettings(){
   try{
     const res = await window.storage.get(SETTINGS_KEY, false);
-    if(res && res.value){ settings = Object.assign({longPressMs:1500}, JSON.parse(res.value)); }
+    if(res && res.value){ settings = Object.assign({longPressMs:1500, showDuphastonTime:true}, JSON.parse(res.value)); }
   }catch(e){ /* use defaults */ }
 }
 async function saveSettings(){
@@ -1226,24 +1316,29 @@ function renderMedication(){
   }
 
   const entry = activeDuphastonEntry;
-  const totalDoses = entry.days.length * 2;
-  const takenDoses = entry.days.reduce((s,d)=> s + (d.morningTaken?1:0) + (d.eveningTaken?1:0), 0);
+  const totalDoses = entry.days.length * entry.dosesPerDay;
+  const takenDoses = entry.days.reduce((s,d)=> s + d.doses.filter(x=>x.taken).length, 0);
   const remaining = totalDoses - takenDoses;
   const today = todayISO();
 
   const rows = entry.days.map((d,i)=>{
-    const cycleInfo = computeCycleDayForDate(d.date);
-    const dayLabel = cycleInfo ? `Day ${cycleInfo.cycleDay}` : `Day ${i+1}`;
+    const dayLabel = `Day ${entry.startCycleDay + i}`;
+    const pills = d.doses.map((dose,j)=>{
+      let content;
+      if(dose.taken){
+        content = (settings.showDuphastonTime && dose.time) ? dose.time : '✓';
+      } else {
+        content = String(j+1);
+      }
+      return `<div class="pill-check ${dose.taken?'checked':''}" data-day-idx="${i}" data-dose-idx="${j}">${content}</div>`;
+    }).join('');
     return `
     <div class="duph-day ${d.date===today?'is-today':''}">
       <div class="duph-day-date">
         <div class="duph-day-num">${dayLabel}</div>
         <div class="duph-day-label">${formatDateLabel(d.date)}</div>
       </div>
-      <div class="duph-pills">
-        <div class="pill-check ${d.morningTaken?'checked':''}" data-idx="${i}" data-slot="morningTaken">${d.morningTaken?'✓':'AM'}</div>
-        <div class="pill-check ${d.eveningTaken?'checked':''}" data-idx="${i}" data-slot="eveningTaken">${d.eveningTaken?'✓':'PM'}</div>
-      </div>
+      <div class="duph-pills">${pills}</div>
       <button class="duph-note-toggle" data-idx="${i}">✎</button>
     </div>
     <div class="duph-note-area" id="duphNoteArea_${i}" style="display:${d.note && d.note.trim() ? 'block':'none'}">
@@ -1256,7 +1351,7 @@ function renderMedication(){
     <div class="duph-summary">
       <div>
         <div class="duph-summary-main">${remaining} <span style="font-size:12px; font-weight:600;">left (${remaining % 2 === 0 ? 'even' : 'odd'})</span></div>
-        <div class="duph-summary-sub">${takenDoses} of ${totalDoses} doses logged</div>
+        <div class="duph-summary-sub">${takenDoses} of ${totalDoses} doses logged · ${entry.dosesPerDay}/day</div>
       </div>
       <div class="duph-summary-days">Planned end<br><b>${formatDateLabel(entry.plannedEndDate)}</b></div>
     </div>
@@ -1266,9 +1361,16 @@ function renderMedication(){
 
   document.querySelectorAll('.pill-check').forEach(pc=>{
     bindLongPress(pc, () => {
-      const idx = parseInt(pc.dataset.idx);
-      const slot = pc.dataset.slot;
-      entry.days[idx][slot] = !entry.days[idx][slot];
+      const dayIdx = parseInt(pc.dataset.dayIdx);
+      const doseIdx = parseInt(pc.dataset.doseIdx);
+      const dose = entry.days[dayIdx].doses[doseIdx];
+      if(dose.taken){
+        dose.taken = false;
+        dose.time = null;
+      } else {
+        dose.taken = true;
+        dose.time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+      }
       saveEntries();
       renderMedication();
       renderTopBar();
@@ -1292,8 +1394,8 @@ function renderMedication(){
 }
 
 function computeDuphastonSummary(entry){
-  const totalScheduledDoses = entry.days.length * 2;
-  const takenDoses = entry.days.reduce((s,d)=> s + (d.morningTaken?1:0) + (d.eveningTaken?1:0), 0);
+  const totalScheduledDoses = entry.days.length * entry.dosesPerDay;
+  const takenDoses = entry.days.reduce((s,d)=> s + d.doses.filter(x=>x.taken).length, 0);
   return {
     lengthDays: entry.days.length,
     takenDoses,
@@ -1544,9 +1646,25 @@ function renderLog(){
     const mdBtn = document.getElementById('md_'+entry.id);
     const jsonBtn = document.getElementById('json_'+entry.id);
     const delBtn = document.getElementById('del_'+entry.id);
+    const viewBtn = document.getElementById('view_'+entry.id);
     if(mdBtn) mdBtn.onclick = () => downloadText(entryToMarkdown(entry), `cycle-${entry.startDate}.md`);
     if(jsonBtn) jsonBtn.onclick = () => downloadText(JSON.stringify(entry, null, 2), `cycle-${entry.startDate}.json`);
     if(delBtn) delBtn.onclick = () => openDeleteEntryModal(entry.id);
+    if(viewBtn) viewBtn.onclick = () => {
+      const area = document.getElementById('viewArea_'+entry.id);
+      const isOpen = area.style.display !== 'none';
+      if(isOpen){
+        area.style.display = 'none';
+        viewBtn.textContent = 'View';
+      } else {
+        if(!area.dataset.rendered){
+          area.innerHTML = markdownToSimpleHtml(entryToMarkdown(entry));
+          area.dataset.rendered = '1';
+        }
+        area.style.display = 'block';
+        viewBtn.textContent = 'Hide';
+      }
+    };
   });
 }
 
@@ -1556,7 +1674,7 @@ function renderLogCard(entry){
     return `
       <div class="log-entry">
         <div class="log-entry-top">
-          <div class="log-entry-title">Duphaston — ${formatDateLabel(entry.startDate)}</div>
+          <div class="log-entry-title">Duphaston<br><span class="log-entry-range">${formatEntryRange(entry)}</span></div>
           <div class="log-entry-top-right">
             <div class="log-entry-status ${entry.status==='active'?'status-active':'status-finished'}">${entry.status}</div>
             <button class="log-entry-delete" id="del_${entry.id}" aria-label="Delete entry">🗑</button>
@@ -1567,9 +1685,11 @@ function renderLogCard(entry){
           <div>Doses taken <b>${s.takenDoses}/${s.totalScheduledDoses}</b></div>
         </div>
         <div class="log-actions">
+          <button class="btn btn-secondary" id="view_${entry.id}">View</button>
           <button class="btn btn-secondary" id="md_${entry.id}">Export .md</button>
           <button class="btn btn-secondary" id="json_${entry.id}">Export .json</button>
         </div>
+        <div class="log-entry-view" id="viewArea_${entry.id}" style="display:none;"></div>
       </div>
     `;
   }
@@ -1578,7 +1698,7 @@ function renderLogCard(entry){
   return `
     <div class="log-entry">
       <div class="log-entry-top">
-        <div class="log-entry-title">${formatDateLabel(entry.startDate)}</div>
+        <div class="log-entry-title">Menstruation<br><span class="log-entry-range">${formatEntryRange(entry)}</span></div>
         <div class="log-entry-top-right">
           <div class="log-entry-status ${entry.status==='active'?'status-active':'status-finished'}">${entry.status}</div>
           <button class="log-entry-delete" id="del_${entry.id}" aria-label="Delete entry">🗑</button>
@@ -1592,9 +1712,11 @@ function renderLogCard(entry){
       </div>
       <div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">${medLine}</div>
       <div class="log-actions">
+        <button class="btn btn-secondary" id="view_${entry.id}">View</button>
         <button class="btn btn-secondary" id="md_${entry.id}">Export .md</button>
         <button class="btn btn-secondary" id="json_${entry.id}">Export .json</button>
       </div>
+      <div class="log-entry-view" id="viewArea_${entry.id}" style="display:none;"></div>
     </div>
   `;
 }
@@ -1634,13 +1756,14 @@ function duphastonToMarkdown(entry){
   const s = entry.summary || computeDuphastonSummary(entry);
   let out = `# Duphaston course — starting ${entry.startDate}\n\n`;
   out += `Status: ${entry.status}\n`;
+  out += `Doses per day: ${entry.dosesPerDay}\n`;
   out += `Days logged: ${s.lengthDays}\n`;
   out += `Doses taken: ${s.takenDoses} / ${s.totalScheduledDoses}\n\n`;
   out += `## Day by day\n\n`;
   entry.days.forEach((d,i)=>{
-    const cycleInfo = computeCycleDayForDate(d.date);
-    const dayLabel = cycleInfo ? `Day ${cycleInfo.cycleDay}` : `Day ${i+1}`;
-    out += `- ${dayLabel} (${d.date}): morning ${d.morningTaken?'taken':'—'}, evening ${d.eveningTaken?'taken':'—'}`;
+    const dayLabel = `Day ${entry.startCycleDay + i}`;
+    const doseText = d.doses.map((dose,j)=> dose.taken ? `dose ${j+1} at ${dose.time || '—'}` : `dose ${j+1} —`).join(', ');
+    out += `- ${dayLabel} (${d.date}): ${doseText}`;
     if(d.note && d.note.trim()) out += ` — note: ${d.note.trim()}`;
     out += `\n`;
   });
@@ -1690,6 +1813,9 @@ function openNewEntryModal(presetType){
   newEntryType = presetType || null;
   document.getElementById('newEntryDate').value = todayISO();
   document.getElementById('newEntryWeightValue').value = '';
+  document.getElementById('newEntryCycleDay').value = 5;
+  document.getElementById('newEntryDuration').value = 21;
+  document.getElementById('newEntryDosesPerDay').value = 3;
   updateNewEntryModalUI();
   prefillWeightIfNeeded();
   document.getElementById('modalNewEntry').classList.add('open');
@@ -1706,12 +1832,14 @@ function updateNewEntryModalUI(){
   const dateLabel = document.getElementById('newEntryDateLabel');
   const confirmBtn = document.getElementById('confirmNewEntry');
   const weightRow = document.getElementById('weightValueRow');
+  const duphastonRow = document.getElementById('duphastonFieldsRow');
   chooserRow.style.display = newEntryType ? 'none' : 'flex';
   document.querySelectorAll('.type-pill').forEach(p=>p.classList.toggle('selected', p.dataset.type===newEntryType));
   if(newEntryType === 'duphaston') dateLabel.textContent = 'First day of Duphaston';
   else if(newEntryType === 'weight') dateLabel.textContent = 'Date';
   else dateLabel.textContent = 'First day of menstruation';
   weightRow.style.display = newEntryType === 'weight' ? 'block' : 'none';
+  duphastonRow.style.display = newEntryType === 'duphaston' ? 'block' : 'none';
   confirmBtn.disabled = !newEntryType;
 }
 document.querySelectorAll('.type-pill').forEach(p=>{
@@ -1746,7 +1874,14 @@ document.getElementById('confirmNewEntry').onclick = async () => {
       showToast('Duphaston already being tracked');
       return;
     }
-    const entry = createDuphastonEntry(date);
+    const startCycleDay = parseInt(document.getElementById('newEntryCycleDay').value);
+    const durationDays = parseInt(document.getElementById('newEntryDuration').value);
+    const dosesPerDay = parseInt(document.getElementById('newEntryDosesPerDay').value);
+    if(!startCycleDay || startCycleDay < 1 || !durationDays || durationDays < 1 || !dosesPerDay || dosesPerDay < 1){
+      showToast('Check cycle day, duration and doses per day');
+      return;
+    }
+    const entry = createDuphastonEntry(date, startCycleDay, durationDays, dosesPerDay);
     entries.push(entry);
     activeDuphastonEntry = entry;
     await saveEntries();
@@ -1834,6 +1969,7 @@ document.getElementById('confirmDeleteEntry').onclick = async () => {
 document.getElementById('settingsBtn').onclick = () => {
   document.getElementById('longPressSlider').value = settings.longPressMs;
   document.getElementById('longPressValueLabel').textContent = (settings.longPressMs/1000).toFixed(1) + 's';
+  updateShowTimeToggleUI();
   document.getElementById('modalSettings').classList.add('open');
 };
 document.getElementById('longPressSlider').oninput = (e) => {
@@ -1841,6 +1977,22 @@ document.getElementById('longPressSlider').oninput = (e) => {
   document.getElementById('longPressValueLabel').textContent = (settings.longPressMs/1000).toFixed(1) + 's';
 };
 document.getElementById('longPressSlider').onchange = () => { saveSettings(); };
+function updateShowTimeToggleUI(){
+  document.getElementById('showTimeOn').classList.toggle('selected-no', settings.showDuphastonTime);
+  document.getElementById('showTimeOff').classList.toggle('selected-no', !settings.showDuphastonTime);
+}
+document.getElementById('showTimeOn').onclick = async () => {
+  settings.showDuphastonTime = true;
+  updateShowTimeToggleUI();
+  await saveSettings();
+  if(currentScreen === 'medication') renderMedication();
+};
+document.getElementById('showTimeOff').onclick = async () => {
+  settings.showDuphastonTime = false;
+  updateShowTimeToggleUI();
+  await saveSettings();
+  if(currentScreen === 'medication') renderMedication();
+};
 document.getElementById('closeSettings').onclick = () => {
   saveSettings();
   document.getElementById('modalSettings').classList.remove('open');
